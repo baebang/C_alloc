@@ -24,15 +24,7 @@
  ********************************************************/
 team_t team = {
     /* Team name */
-    "ateam",
-    /* First member's full name */
-    "Harry Bovik",
-    /* First member's email address */
-    "bovik@cs.cmu.edu",
-    /* Second member's full name (leave blank if none) */
-    "",
-    /* Second member's email address (leave blank if none) */
-    ""
+    "나는야 코딩왕"
 };
 
 #define WSIZE 4
@@ -105,7 +97,7 @@ void *mm_malloc(size_t size)
 	char* bp;
 
 
-    printf("====malloc=====%d\n", size);
+    
 
 	if (size == 0)											
 		return NULL;
