@@ -67,7 +67,7 @@ static char* heap_listp;                                        // heap의 첫�
 int mm_init(void)
 {   
     if ((heap_listp = mem_sbrk(4*WSIZE)) == (void *) - 1)
-        return -1;
+        return -1; //유효성 검사
 
     PUT(heap_listp, 0);                                         // heap의 첫 패딩 - free(0) 값 넣어준다
     PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1));                // heap의 Prolog 헤더
@@ -75,8 +75,11 @@ int mm_init(void)
     PUT(heap_listp + (3*WSIZE), PACK(0, 1));                    // heap의 Epilog
     heap_listp += (2 * WSIZE);
 
-    if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
+    if (extend_heap(CHUNKSIZE/WSIZE) == NULL){ //넣은 값이 
+        printf("널입니다요");
         return -1;
+    }
+    printf("정상적으로 init 총 사이즈는 %d\n", CHUNKSIZE);
     return 0;
 }
 
@@ -87,12 +90,13 @@ static void *extend_heap(size_t words) {
     
 
     size = (words % 2) ? (words + 1) * WSIZE : words * WSIZE;   // double word allignment를 고려하여 짝수 개만큼의 size를 반환한다
-    if ((long)(bp = mem_sbrk(size)) == -1)
+    if ((long)(bp = mem_sbrk(size)) == -1) // 변환한 사이즈만큼 메모리 확보에 실패하면 NULL이라는 주소값을 반환해 실패했음을 알린다
         return NULL;
     
     PUT(HDRP(bp), PACK(size, 0));
     PUT(FTRP(bp), PACK(size, 0));
     PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1));
+    printf("=======없으니까 ㄱㄱfirst insert == %d\n", GET_SIZE(HDRP(bp)));
 
     return coalesce(bp);
 }
@@ -115,7 +119,7 @@ void *mm_malloc(size_t size)
 		asize = 2 * DSIZE;
 	else
 		asize = DSIZE * ((size + (DSIZE) + (DSIZE - 1)) / DSIZE);		     // 8의 배수(Dsize)로 생성
-
+        
     /* free list 탐색하기 */
 	if ((bp = find_fit(asize)) != NULL) {								 // 들어갈 free 블록이 있다면 해당 위치에 넣어준다
 		place(bp, asize);
@@ -126,6 +130,8 @@ void *mm_malloc(size_t size)
 	extendsize = MAX(asize, CHUNKSIZE);
 	if ((bp = extend_heap(extendsize / WSIZE)) == NULL)
 		return NULL;
+    
+    printf("=======malloc hader == %d\n", GET_SIZE(HDRP(bp)));
 	place(bp, asize);
 	return bp;
 }
@@ -137,8 +143,11 @@ static void *find_fit(size_t asize) {
     void *bp;
 
     for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
-        if (!GET_ALLOC(HDRP(bp)) && (GET_SIZE(HDRP(bp))) >= asize)
+        if (!GET_ALLOC(HDRP(bp)) && (GET_SIZE(HDRP(bp))) >= asize){
+            printf("맞는곳에 적재 완료===== %d\n", (GET_SIZE(HDRP(bp))));
+            printf("마지막 값==== %d\n", (GET_SIZE(HDRP(bp)))+asize);
             return bp;
+        }
     }
     return NULL;
 
@@ -167,6 +176,7 @@ static void place(void *bp, size_t asize) {
  */
 void mm_free(void *bp) {
     size_t size = GET_SIZE(HDRP(bp));
+    printf("=======free hader == %d\n", GET_SIZE(HDRP(bp)));
 
     PUT(HDRP(bp), PACK(size, 0));
     PUT(FTRP(bp), PACK(size, 0));
@@ -181,11 +191,11 @@ static void *coalesce(void *bp) {
     size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));         // 다음 header로부터 할당 정보를 가져온다
     size_t size = GET_SIZE(HDRP(bp));                           // 현 사이즈 정보
 
-    if (prev_alloc && next_alloc) {                             // 1. 앞 뒤 모두 할당 상태
+    if (prev_alloc && next_alloc) {
         return bp;
     }
-    else if (prev_alloc && !next_alloc) {                       // 2. 앞 할당 뒤 가용 상태
-        size += GET_SIZE(HDRP(NEXT_BLKP(bp)));                  // 뒤 가용 상태의 블록 size와 합친다
+    else if (prev_alloc && !next_alloc) {
+        size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
         PUT(HDRP(bp), PACK(size, 0));
         PUT(FTRP(bp), PACK(size, 0));
     }
